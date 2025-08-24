@@ -1,0 +1,16 @@
+<p-menubar [model]="items" class="border-0 shadow-sm">
+  <ng-template pTemplate="start">
+    <div class="flex items-center space-x-2">
+      <i class="pi pi-video text-2xl text-blue-600"></i>
+      <span class="font-bold text-lg text-gray-800">Cinema Scheduling</span>
+    </div>
+  </ng-template>
+
+  <ng-template pTemplate="end" *ngIf="currentUser">
+    <div class="flex items-center space-x-2 text-sm">
+      <span class="text-gray-600">{{ currentUser?.role | titlecase }}</span>
+      <span class="text-gray-400">|</span>
+      <span class="font-medium">{{ currentUser?.name }}</span>
+    </div>
+  </ng-template>
+</p-menubar>

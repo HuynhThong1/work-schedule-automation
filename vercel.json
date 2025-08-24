@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "dist/backend/main.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "dist/frontend/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/dist/backend/main.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist/frontend/$1"
+    }
+  ],
+  "env": {
+    "MONGODB_URI": "@mongodb_uri",
+    "JWT_SECRET": "@jwt_secret",
+    "NODE_ENV": "production",
+    "TZ": "Asia/Ho_Chi_Minh"
+  }
+}

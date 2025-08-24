@@ -1,0 +1,31 @@
+/* You can add global styles to this file, and also import other style files */
+
+/* TailwindCSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* PrimeNG v20+ - New theming system */
+/* PrimeNG v20+ doesn't use traditional CSS imports - themes are handled via Angular configuration */
+/* Using PrimeIcons from node_modules */
+@import "primeicons/primeicons.css";
+
+
+/* Global Styles */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f8fafc;
+}
+
+.main-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-wrapper {
+  flex: 1;
+  padding: 1rem;
+}

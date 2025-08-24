@@ -1,0 +1,164 @@
+<div class="p-6">
+  <div class="mb-6">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ welcomeMessage }}</h1>
+    <p class="text-gray-600">{{ roleDescription }}</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <!-- Employee Cards -->
+    <div *ngIf="currentUser?.role === 'employee'">
+      <p-card class="h-full">
+        <ng-template pTemplate="header">
+          <div class="p-4 bg-blue-50">
+            <i class="pi pi-calendar text-3xl text-blue-600"></i>
+          </div>
+        </ng-template>
+        <h3 class="text-xl font-semibold mb-2">My Schedule</h3>
+        <p class="text-gray-600 mb-4">View your upcoming shifts and work schedule</p>
+        <p-button
+          label="View Schedule"
+          routerLink="/employee/schedule"
+          styleClass="w-full"
+        ></p-button>
+      </p-card>
+    </div>
+
+    <div *ngIf="currentUser?.role === 'employee'">
+      <p-card class="h-full">
+        <ng-template pTemplate="header">
+          <div class="p-4 bg-green-50">
+            <i class="pi pi-clock text-3xl text-green-600"></i>
+          </div>
+        </ng-template>
+        <h3 class="text-xl font-semibold mb-2">Availability</h3>
+        <p class="text-gray-600 mb-4">Set your available working hours</p>
+        <p-button
+          label="Update Availability"
+          routerLink="/employee/availability"
+          styleClass="w-full"
+        ></p-button>
+      </p-card>
+    </div>
+
+    <div *ngIf="currentUser?.role === 'employee'">
+      <p-card class="h-full">
+        <ng-template pTemplate="header">
+          <div class="p-4 bg-purple-50">
+            <i class="pi pi-file text-3xl text-purple-600"></i>
+          </div>
+        </ng-template>
+        <h3 class="text-xl font-semibold mb-2">Timesheet</h3>
+        <p class="text-gray-600 mb-4">Track your working hours and earnings</p>
+        <p-button
+          label="View Timesheet"
+          routerLink="/employee/timesheet"
+          styleClass="w-full"
+        ></p-button>
+      </p-card>
+    </div>
+
+    <!-- Manager Cards -->
+    <div *ngIf="currentUser?.role === 'manager'">
+      <p-card class="h-full">
+        <ng-template pTemplate="header">
+          <div class="p-4 bg-blue-50">
+            <i class="pi pi-users text-3xl text-blue-600"></i>
+          </div>
+        </ng-template>
+        <h3 class="text-xl font-semibold mb-2">Employees</h3>
+        <p class="text-gray-600 mb-4">Manage employee information and profiles</p>
+        <p-button
+          label="Manage Employees"
+          routerLink="/manager/employees"
+          styleClass="w-full"
+        ></p-button>
+      </p-card>
+    </div>
+
+    <div *ngIf="currentUser?.role === 'manager'">
+      <p-card class="h-full">
+        <ng-template pTemplate="header">
+          <div class="p-4 bg-green-50">
+            <i class="pi pi-calendar-plus text-3xl text-green-600"></i>
+          </div>
+        </ng-template>
+        <h3 class="text-xl font-semibold mb-2">Shifts</h3>
+        <p class="text-gray-600 mb-4">Create and manage work shifts</p>
+        <p-button
+          label="Manage Shifts"
+          routerLink="/manager/shifts"
+          styleClass="w-full"
+        ></p-button>
+      </p-card>
+    </div>
+
+    <div *ngIf="currentUser?.role === 'manager'">
+      <p-card class="h-full">
+        <ng-template pTemplate="header">
+          <div class="p-4 bg-purple-50">
+            <i class="pi pi-calendar text-3xl text-purple-600"></i>
+          </div>
+        </ng-template>
+        <h3 class="text-xl font-semibold mb-2">Schedules</h3>
+        <p class="text-gray-600 mb-4">Create and publish work schedules</p>
+        <p-button
+          label="Manage Schedules"
+          routerLink="/manager/schedules"
+          styleClass="w-full"
+        ></p-button>
+      </p-card>
+    </div>
+
+    <div *ngIf="currentUser?.role === 'manager'">
+      <p-card class="h-full">
+        <ng-template pTemplate="header">
+          <div class="p-4 bg-orange-50">
+            <i class="pi pi-list text-3xl text-orange-600"></i>
+          </div>
+        </ng-template>
+        <h3 class="text-xl font-semibold mb-2">Rules</h3>
+        <p class="text-gray-600 mb-4">Configure scheduling rules and policies</p>
+        <p-button
+          label="Manage Rules"
+          routerLink="/manager/rules"
+          styleClass="w-full"
+        ></p-button>
+      </p-card>
+    </div>
+
+    <div *ngIf="currentUser?.role === 'manager'">
+      <p-card class="h-full">
+        <ng-template pTemplate="header">
+          <div class="p-4 bg-red-50">
+            <i class="pi pi-file-o text-3xl text-red-600"></i>
+          </div>
+        </ng-template>
+        <h3 class="text-xl font-semibold mb-2">Timesheets</h3>
+        <p class="text-gray-600 mb-4">Review and approve employee timesheets</p>
+        <p-button
+          label="View Timesheets"
+          routerLink="/manager/timesheets"
+          styleClass="w-full"
+        ></p-button>
+      </p-card>
+    </div>
+
+    <!-- Senior Manager Only -->
+    <div *ngIf="currentUser?.role === 'manager' && currentUser?.type === 'senior'">
+      <p-card class="h-full">
+        <ng-template pTemplate="header">
+          <div class="p-4 bg-gray-50">
+            <i class="pi pi-shield text-3xl text-gray-600"></i>
+          </div>
+        </ng-template>
+        <h3 class="text-xl font-semibold mb-2">Managers</h3>
+        <p class="text-gray-600 mb-4">Manage other managers and permissions</p>
+        <p-button
+          label="Manage Managers"
+          routerLink="/admin/managers"
+          styleClass="w-full"
+        ></p-button>
+      </p-card>
+    </div>
+  </div>
+</div>
