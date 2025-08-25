@@ -6,6 +6,8 @@ import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { FeaturePlaceholderComponent } from './components/feature-placeholder/feature-placeholder.component';
 import { EmployeeManagementComponent } from './components/manager/employee-management/employee-management.component';
 import { ShiftManagementComponent } from './components/manager/shift-management/shift-management.component';
+import { ScheduleManagementComponent } from './components/manager/schedule-management/schedule-management.component';
+import { ShiftCalendarManagerComponent } from './components/manager/shift-calendar-manager/shift-calendar-manager.component';
 import { RulesManagementComponent } from './components/manager/rules-management/rules-management.component';
 import { ShiftCalendarComponent } from './components/employee/shift-calendar/shift-calendar.component';
 
@@ -40,7 +42,8 @@ export const appRoutes: Route[] = [
     children: [
       { path: 'employees', component: EmployeeManagementComponent },
       { path: 'shifts', component: ShiftManagementComponent },
-      { path: 'schedules', component: FeaturePlaceholderComponent },
+      { path: 'schedules', component: ScheduleManagementComponent },
+      { path: 'calendar', component: ShiftCalendarManagerComponent },
       { path: 'rules', component: RulesManagementComponent },
       { path: 'timesheets', component: FeaturePlaceholderComponent },
     ],

@@ -82,6 +82,11 @@ export class NavbarComponent implements OnInit {
               routerLink: '/manager/schedules'
             },
             {
+              label: 'Calendar View',
+              icon: 'pi pi-calendar-times',
+              routerLink: '/manager/calendar'
+            },
+            {
               label: 'Rules',
               icon: 'pi pi-list',
               routerLink: '/manager/rules'

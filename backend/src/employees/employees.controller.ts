@@ -34,6 +34,12 @@ export class EmployeesController {
     return this.employeesService.findAll();
   }
 
+  @Get('basic-info')
+  findBasicInfo() {
+    // Allow all authenticated users to get basic employee info (names and IDs only)
+    return this.employeesService.findBasicInfo();
+  }
+
   @Get('available')
   @Roles('manager')
   @UseGuards(RolesGuard)

@@ -18,6 +18,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Employee, EmployeeSchema } from '../schemas/employee.schema';
 import { Manager, ManagerSchema } from '../schemas/manager.schema';
 import { Rule, RuleSchema } from '../schemas/rule.schema';
+import { Shift, ShiftSchema } from '../schemas/shift.schema';
 import configuration from '../config/configuration';
 
 @Module({
@@ -40,6 +41,7 @@ import configuration from '../config/configuration';
       { name: Employee.name, schema: EmployeeSchema },
       { name: Manager.name, schema: ManagerSchema },
       { name: Rule.name, schema: RuleSchema },
+      { name: Shift.name, schema: ShiftSchema },
     ]),
   ],
   controllers: [AppController],

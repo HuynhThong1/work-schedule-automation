@@ -34,9 +34,11 @@ export class ShiftsController {
   @Get()
   findAll(@Request() req, @Query('managerId') managerId?: string) {
     // If user is a manager, filter by their ID unless they're senior
+    // Employees should see all shifts, so don't filter for them
     if (req.user.role === 'manager' && req.user.type !== 'senior' && !managerId) {
       managerId = req.user.sub;
     }
+    // For employees (req.user.role === 'employee'), managerId remains undefined, showing all shifts
     return this.shiftsService.findAll(managerId);
   }
 

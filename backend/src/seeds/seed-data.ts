@@ -4,6 +4,8 @@ import { Model } from 'mongoose';
 import { Employee, EmployeeDocument, EmployeeType } from '../schemas/employee.schema';
 import { Manager, ManagerDocument, ManagerLevel } from '../schemas/manager.schema';
 import { Rule, RuleDocument, RuleType } from '../schemas/rule.schema';
+import { Shift, ShiftDocument, ShiftStatus } from '../schemas/shift.schema';
+import moment from 'moment';
 
 @Injectable()
 export class SeedService implements OnModuleInit {
@@ -11,6 +13,7 @@ export class SeedService implements OnModuleInit {
     @InjectModel(Employee.name) private employeeModel: Model<EmployeeDocument>,
     @InjectModel(Manager.name) private managerModel: Model<ManagerDocument>,
     @InjectModel(Rule.name) private ruleModel: Model<RuleDocument>,
+    @InjectModel(Shift.name) private shiftModel: Model<ShiftDocument>,
   ) {}
 
   async onModuleInit() {
@@ -35,6 +38,11 @@ export class SeedService implements OnModuleInit {
     const ruleCount = await this.ruleModel.countDocuments();
     if (ruleCount === 0) {
       await this.seedRules();
+    }
+
+    const shiftCount = await this.shiftModel.countDocuments();
+    if (shiftCount === 0) {
+      await this.seedShifts();
     }
   }
 
@@ -183,5 +191,46 @@ export class SeedService implements OnModuleInit {
 
     await this.ruleModel.insertMany(rules);
     console.log('✅ Rules seeded successfully');
+  }
+
+  private async seedShifts() {
+    // Get the first manager to assign shifts to
+    const manager = await this.managerModel.findOne();
+    if (!manager) {
+      console.log('❌ No manager found, skipping shift seeding');
+      return;
+    }
+
+    const shifts = [];
+    const startDate = moment().startOf('week'); // Start of current week
+    const endDate = moment().add(2, 'weeks').endOf('week'); // Next 2 weeks
+
+    // Standard shift templates
+    const shiftTemplates = [
+      { name: 'Morning Shift', startTime: '09:00', endTime: '14:00', capacity: 3 },
+      { name: 'Afternoon Shift', startTime: '14:00', endTime: '18:00', capacity: 3 },
+      { name: 'Evening Shift', startTime: '18:00', endTime: '00:00', capacity: 3 },
+    ];
+
+    const currentDate = moment(startDate);
+    while (currentDate.isSameOrBefore(endDate, 'day')) {
+      for (const template of shiftTemplates) {
+        shifts.push({
+          date: currentDate.toDate(),
+          startTime: template.startTime,
+          endTime: template.endTime,
+          name: template.name,
+          capacity: template.capacity,
+          manager: manager._id,
+          status: ShiftStatus.PUBLISHED, // Make them published so employees can see them
+          assignedEmployees: [],
+          description: `${template.name} for ${currentDate.format('dddd, MMMM DD, YYYY')}`,
+        });
+      }
+      currentDate.add(1, 'day');
+    }
+
+    await this.shiftModel.insertMany(shifts);
+    console.log(`✅ ${shifts.length} shifts seeded successfully for ${Math.ceil(shifts.length / 3)} days`);
   }
 }

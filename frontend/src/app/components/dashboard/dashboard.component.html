@@ -112,6 +112,23 @@
     <div *ngIf="currentUser?.role === 'manager'">
       <p-card class="h-full">
         <ng-template pTemplate="header">
+          <div class="p-4 bg-indigo-50">
+            <i class="pi pi-calendar-times text-3xl text-indigo-600"></i>
+          </div>
+        </ng-template>
+        <h3 class="text-xl font-semibold mb-2">Calendar View</h3>
+        <p class="text-gray-600 mb-4">View employee registrations and manage shifts</p>
+        <p-button
+          label="View Calendar"
+          routerLink="/manager/calendar"
+          styleClass="w-full"
+        ></p-button>
+      </p-card>
+    </div>
+
+    <div *ngIf="currentUser?.role === 'manager'">
+      <p-card class="h-full">
+        <ng-template pTemplate="header">
           <div class="p-4 bg-orange-50">
             <i class="pi pi-list text-3xl text-orange-600"></i>
           </div>

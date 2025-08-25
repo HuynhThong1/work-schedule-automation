@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
@@ -41,10 +41,13 @@ export interface Shift {
   date: Date;
   startTime: string;
   endTime: string;
+  name: string;
   capacity: number;
   assignedEmployees: string[];
   manager: string;
   isPublished: boolean;
+  description?: string;
+  status?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -62,10 +65,14 @@ export interface Rule {
 
 export interface Schedule {
   _id?: string;
+  name: string;
   startDate: Date;
   endDate: Date;
-  shifts: string[];
-  isPublished: boolean;
+  shifts: any[];
+  status: 'draft' | 'published' | 'archived';
+  createdBy: any;
+  notes?: string;
+  isTemplate?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -108,7 +115,7 @@ export interface ShiftRequest {
 export class ApiService {
   private baseUrl = 'http://localhost:3000/api';
 
-  constructor(private http: HttpClient) {}
+  private http = inject(HttpClient);
 
   private handleError(error: HttpErrorResponse) {
     let errorMessage = 'An unknown error occurred';
@@ -128,6 +135,11 @@ export class ApiService {
   // Employee Management
   getEmployees(): Observable<Employee[]> {
     return this.http.get<Employee[]>(`${this.baseUrl}/employees`)
+      .pipe(catchError(this.handleError));
+  }
+
+  getEmployeesBasicInfo(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.baseUrl}/employees/basic-info`)
       .pipe(catchError(this.handleError));
   }
 
@@ -255,6 +267,31 @@ export class ApiService {
 
   publishSchedule(id: string): Observable<Schedule> {
     return this.http.patch<Schedule>(`${this.baseUrl}/schedules/${id}/publish`, {})
+      .pipe(catchError(this.handleError));
+  }
+
+  autoGenerateSchedule(params: any): Observable<Schedule> {
+    return this.http.post<Schedule>(`${this.baseUrl}/schedules/auto-generate`, params)
+      .pipe(catchError(this.handleError));
+  }
+
+  autoAssignEmployees(id: string, respectRequests = true): Observable<Schedule> {
+    return this.http.patch<Schedule>(`${this.baseUrl}/schedules/${id}/auto-assign`, { respectRequests })
+      .pipe(catchError(this.handleError));
+  }
+
+  autoAssignEmployeesToShifts(shiftIds: string[], respectRequests = true): Observable<Shift[]> {
+    return this.http.post<Shift[]>(`${this.baseUrl}/schedules/auto-assign-shifts`, { shiftIds, respectRequests })
+      .pipe(catchError(this.handleError));
+  }
+
+  autoProcessShiftRequests(shiftIds: string[]): Observable<{ approvedRequests: number, rejectedRequests: number, processedShifts: Shift[] }> {
+    return this.http.post<{ approvedRequests: number, rejectedRequests: number, processedShifts: Shift[] }>(`${this.baseUrl}/schedules/auto-process-requests`, { shiftIds })
+      .pipe(catchError(this.handleError));
+  }
+
+  deleteSchedule(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/schedules/${id}`)
       .pipe(catchError(this.handleError));
   }
 

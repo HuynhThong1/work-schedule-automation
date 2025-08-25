@@ -100,6 +100,13 @@ export class EmployeesService {
     return this.employeeModel.find({ isActive: true }).exec();
   }
 
+  async findBasicInfo(): Promise<any[]> {
+    return this.employeeModel
+      .find({ isActive: true })
+      .select('_id name code')
+      .exec();
+  }
+
   async findOne(id: string): Promise<Employee> {
     const employee = await this.employeeModel.findById(id).exec();
     if (!employee) {
