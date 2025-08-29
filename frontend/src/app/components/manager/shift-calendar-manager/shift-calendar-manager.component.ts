@@ -1,10 +1,5 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FullCalendarModule } from '@fullcalendar/angular';
-import { CalendarOptions, EventClickArg } from '@fullcalendar/core';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { CardModule } from 'primeng/card';
@@ -19,6 +14,8 @@ import { FormsModule } from '@angular/forms';
 
 import { ApiService, Shift, ShiftRequest } from '../../../services/api.service';
 import { AuthService } from '../../../services/auth.service';
+import { DynamicCalendarComponent, CalendarEvent, CalendarConfig } from '../../shared/dynamic-calendar/dynamic-calendar.component';
+import { CalendarHeaderComponent, HeaderAction } from '../../shared/calendar-header/calendar-header.component';
 import { firstValueFrom } from 'rxjs';
 
 interface ShiftWithRequests extends Shift {
@@ -32,7 +29,6 @@ interface ShiftWithRequests extends Shift {
   standalone: true,
   imports: [
     CommonModule,
-    FullCalendarModule,
     ToastModule,
     CardModule,
     ButtonModule,
@@ -43,52 +39,27 @@ interface ShiftWithRequests extends Shift {
     AvatarGroupModule,
     CheckboxModule,
     FormsModule,
+    DynamicCalendarComponent,
+    CalendarHeaderComponent,
   ],
   providers: [MessageService],
   template: `
-    <div class="p-6">
-      <p-card>
-        <ng-template pTemplate="header">
-          <div class="p-4 bg-blue-50">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center">
-                <i class="pi pi-calendar text-3xl text-blue-600 mr-3"></i>
-                <div>
-                  <h2 class="text-2xl font-bold text-gray-900">Manager Shift Calendar</h2>
-                  <p class="text-gray-600">View shifts and employee registrations</p>
-                </div>
-              </div>
-              <div class="flex gap-3">
-                <p-button
-                  icon="pi pi-refresh"
-                  label="Refresh"
-                  severity="secondary"
-                  styleClass="action-button"
-                  [loading]="loading"
-                  (onClick)="loadData()">
-                </p-button>
-                <p-button
-                  icon="pi pi-cog"
-                  label="Auto Schedule"
-                  severity="success"
-                  styleClass="action-button"
-                  [disabled]="loading"
-                  (onClick)="showAutoScheduleDialog()">
-                </p-button>
-                <p-button
-                  icon="pi pi-users"
-                  label="All Requests"
-                  severity="help"
-                  styleClass="action-button"
-                  (onClick)="showAllRequests()"
-                  [badge]="pendingRequestsCount > 0 ? pendingRequestsCount.toString() : ''"
-                  badgeSeverity="danger">
-                </p-button>
-              </div>
-            </div>
-          </div>
-        </ng-template>
+    <div class="manager-calendar-container">
+      <p-toast></p-toast>
 
+      <p-card>
+        <!-- Calendar Header -->
+        <app-calendar-header
+          title="Manager Shift Calendar"
+          subtitle="View shifts and employee registrations"
+          headerIcon="pi pi-calendar"
+          [actions]="headerActions"
+          [showTimeNavigation]="true"
+          (actionClick)="handleHeaderAction($event)"
+          (timeNavigate)="handleTimeNavigation($event)">
+        </app-calendar-header>
+
+        <!-- Legend -->
         <div class="legend-container">
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="legend-item">
@@ -110,16 +81,14 @@ interface ShiftWithRequests extends Shift {
           </div>
         </div>
 
-        <div class="calendar-container relative">
-          <full-calendar
-            [options]="calendarOptions">
-          </full-calendar>
-
-          <!-- Loading Overlay -->
-          <div *ngIf="loading" class="loading-overlay">
-            <div class="loading-spinner"></div>
-          </div>
-        </div>
+        <!-- Dynamic Calendar -->
+        <app-dynamic-calendar
+          #dynamicCalendar
+          [events]="calendarEvents"
+          [config]="calendarConfig"
+          [loading]="loading"
+          (eventClick)="handleEventClick($event)">
+        </app-dynamic-calendar>
       </p-card>
 
       <!-- Shift Details Dialog -->
@@ -481,304 +450,20 @@ interface ShiftWithRequests extends Shift {
     </div>
   `,
   styles: [`
-    .calendar-container {
-      height: auto;
-      max-height: 700px;
-      background: #ffffff;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-      overflow: auto;
-    }
-
-    /* FullCalendar Base Styling */
-    :host ::ng-deep .fc {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #ffffff;
-    }
-
-    /* Header Styling */
-    :host ::ng-deep .fc-header-toolbar {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      padding: 1.5rem 2rem;
-      margin-bottom: 0;
-      border-radius: 0;
-    }
-
-    :host ::ng-deep .fc-toolbar-title {
-      color: #ffffff;
-      font-size: 1.75rem;
-      font-weight: 700;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    :host ::ng-deep .fc-button-group .fc-button {
-      background: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      color: #ffffff;
-      border-radius: 8px;
-      padding: 0.5rem 1rem;
-      font-weight: 500;
-      transition: all 0.3s ease;
-      margin: 0 2px;
-    }
-
-    :host ::ng-deep .fc-button-group .fc-button:hover {
-      background: rgba(255, 255, 255, 0.3);
-      border-color: rgba(255, 255, 255, 0.5);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    :host ::ng-deep .fc-button-group .fc-button:focus {
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
-    }
-
-    :host ::ng-deep .fc-button-active {
-      background: rgba(255, 255, 255, 0.4) !important;
-      border-color: rgba(255, 255, 255, 0.6) !important;
-    }
-
-    /* Calendar Grid */
-    :host ::ng-deep .fc-scrollgrid {
-      border: none;
-    }
-
-    :host ::ng-deep .fc-col-header {
-      background: #f8fafc;
-      border-bottom: 2px solid #e2e8f0;
-    }
-
-    :host ::ng-deep .fc-col-header-cell {
-      padding: 1rem 0.5rem;
-      font-weight: 600;
-      color: #475569;
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      letter-spacing: 0.05em;
-    }
-
-    :host ::ng-deep .fc-timegrid-slot {
-      border-color: #f1f5f9;
-      height: 3rem;
-    }
-
-    :host ::ng-deep .fc-timegrid-slot-label {
-      color: #64748b;
-      font-size: 0.75rem;
-      font-weight: 500;
-      padding-right: 1rem;
-    }
-
-    :host ::ng-deep .fc-timegrid-axis {
-      background: #fafbfc;
-      border-right: 2px solid #e2e8f0;
-    }
-
-    /* Day Columns */
-    :host ::ng-deep .fc-day {
-      background: #ffffff;
-      transition: background-color 0.2s ease;
-    }
-
-    :host ::ng-deep .fc-day:hover {
+    .manager-calendar-container {
+      padding: 1.5rem;
+      min-height: 100vh;
       background: #f8fafc;
     }
 
-    :host ::ng-deep .fc-day-today {
-      background: #fef3c7 !important;
-      position: relative;
-    }
-
-    :host ::ng-deep .fc-day-today::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: linear-gradient(90deg, #f59e0b, #d97706);
-    }
-
-    /* Google Calendar-style Event Styling */
-    :host ::ng-deep .fc-event {
-      cursor: pointer;
-      border-radius: 4px;
-      border: none !important;
-      font-size: 0.75rem;
-      font-weight: 500;
-      padding: 2px 6px;
-      margin: 0 1px;
-      transition: all 0.2s ease;
-      box-shadow: none;
-      position: relative;
-      overflow: hidden;
-      /* Critical: Remove all height constraints for proper spanning */
-      min-height: 0 !important;
-      height: auto !important;
-      max-height: none !important;
-    }
-
-    /* Time grid events - key to Google Calendar-style spanning */
-    :host ::ng-deep .fc-timegrid-event {
-      /* Remove all height constraints */
-      min-height: 0 !important;
-      height: calc(100% - 10px) !important;
-      max-height: none !important;
-      /* Ensure proper positioning */
-      left: 0 !important;
-      right: 0 !important;
-      margin-left: 1px !important;
-      margin-right: 1px !important;
-    }
-
-    /* Event content container */
-    :host ::ng-deep .fc-timegrid-event .fc-event-main {
-      height: 100% !important;
-      padding: 2px 4px !important;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      align-items: flex-start;
-    }
-
-    /* Event title styling - Google Calendar style */
-    :host ::ng-deep .fc-event-title {
-      font-size: 0.75rem !important;
-      line-height: 1.2 !important;
-      font-weight: 500 !important;
-      color: white !important;
-      width: 100%;
-      /* Allow multi-line text like Google Calendar */
-      white-space: pre-line !important;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-    }
-
-    /* Hide time display since we include it in title */
-    :host ::ng-deep .fc-event-time {
-      display: none !important;
-    }
-
-    /* Ensure proper event harness */
-    :host ::ng-deep .fc-timegrid-event-harness {
-      height: auto !important;
-      min-height: 0 !important;
-      max-height: none !important;
-    }
-
-    /* Remove resizer handles */
-    :host ::ng-deep .fc-event-resizer {
-      display: none !important;
-    }
-
-    /* Ensure proper time slot rendering */
-    :host ::ng-deep .fc-timegrid-slot {
-      height: 3rem !important; /* Fixed height for each hour slot */
-      border-bottom: 1px solid #e5e7eb;
-    }
-
-    :host ::ng-deep .fc-timegrid-slot-minor {
-      border-bottom: 1px solid #f3f4f6;
-    }
-
-    /* Ensure events fill the time slots properly */
-    :host ::ng-deep .fc-timegrid-col-events {
-      margin: 0 !important;
-    }
-
-    :host ::ng-deep .fc-event:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-      z-index: 10;
-    }
-
-    :host ::ng-deep .fc-event::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    /* Available Shifts - Green */
-    :host ::ng-deep .fc-event-available {
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: #ffffff;
-      border-left: 4px solid #047857;
-    }
-
-    :host ::ng-deep .fc-event-available:hover {
-      background: linear-gradient(135deg, #059669, #047857);
-    }
-
-    /* Assigned Shifts - Blue */
-    :host ::ng-deep .fc-event-assigned {
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
-      color: #ffffff;
-      border-left: 4px solid #1d4ed8;
-    }
-
-    :host ::ng-deep .fc-event-assigned:hover {
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-    }
-
-    /* Pending Requests - Orange */
-    :host ::ng-deep .fc-event-pending {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      color: #ffffff;
-      border-left: 4px solid #b45309;
-    }
-
-    :host ::ng-deep .fc-event-pending:hover {
-      background: linear-gradient(135deg, #d97706, #b45309);
-    }
-
-    :host ::ng-deep .fc-event-pending::after {
-      content: '⏳';
-      position: absolute;
-      top: 2px;
-      right: 4px;
-      font-size: 0.7rem;
-    }
-
-    /* Full Capacity - Red */
-    :host ::ng-deep .fc-event-full {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      color: #ffffff;
-      border-left: 4px solid #b91c1c;
-    }
-
-    :host ::ng-deep .fc-event-full:hover {
-      background: linear-gradient(135deg, #dc2626, #b91c1c);
-    }
-
-    :host ::ng-deep .fc-event-full::after {
-      content: '🔒';
-      position: absolute;
-      top: 2px;
-      right: 4px;
-      font-size: 0.7rem;
-    }
-
-    /* Event Title Styling */
-    :host ::ng-deep .fc-event-title {
-      font-weight: 600;
-      line-height: 1.2;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Legend Improvements */
+    /* Legend Styling */
     .legend-container {
-      background: #f8fafc;
+      background: #ffffff;
       border-radius: 12px;
       padding: 1rem 1.5rem;
       margin-bottom: 1.5rem;
       border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
 
     .legend-item {
@@ -793,6 +478,7 @@ interface ShiftWithRequests extends Shift {
       height: 16px;
       border-radius: 4px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      flex-shrink: 0;
     }
 
     .legend-text {
@@ -801,109 +487,52 @@ interface ShiftWithRequests extends Shift {
       color: #475569;
     }
 
-    /* Responsive Design */
-    @media (max-width: 768px) {
-      .calendar-container {
-        height: 500px;
-      }
-
-      :host ::ng-deep .fc-header-toolbar {
-        padding: 1rem;
-        flex-direction: column;
-        gap: 1rem;
-      }
-
-      :host ::ng-deep .fc-toolbar-title {
-        font-size: 1.25rem;
-      }
-
-      :host ::ng-deep .fc-button-group .fc-button {
-        padding: 0.375rem 0.75rem;
-        font-size: 0.875rem;
-      }
-
-      :host ::ng-deep .fc-event {
-        font-size: 0.7rem;
-        padding: 0.125rem 0.375rem;
-      }
-    }
-
-    /* Dialog Improvements */
-    :host ::ng-deep .p-tabview .p-tabview-panels {
-      padding: 1rem 0;
-    }
-
-    :host ::ng-deep .p-dialog .p-dialog-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #ffffff;
-      border-radius: 12px 12px 0 0;
-    }
-
-    :host ::ng-deep .p-dialog .p-dialog-content {
-      border-radius: 0 0 12px 12px;
-    }
-
-    /* Loading States */
-    .loading-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(255, 255, 255, 0.9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 12px;
-      z-index: 1000;
-    }
-
-    .loading-spinner {
-      width: 40px;
-      height: 40px;
-      border: 4px solid #e2e8f0;
-      border-top: 4px solid #3b82f6;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Header Card Styling */
-    :host ::ng-deep .p-card .p-card-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #ffffff;
-      border-radius: 12px 12px 0 0;
+    /* Card Styling */
+    :host ::ng-deep .p-card {
+      border-radius: 16px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
       border: none;
+      overflow: hidden;
     }
 
     :host ::ng-deep .p-card .p-card-body {
       padding: 0;
-      border-radius: 0 0 12px 12px;
     }
 
     :host ::ng-deep .p-card .p-card-content {
       padding: 1.5rem;
     }
 
+    /* Dialog Improvements */
+    :host ::ng-deep .p-dialog {
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    :host ::ng-deep .p-dialog .p-dialog-header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #ffffff;
+      border-radius: 16px 16px 0 0;
+    }
+
+    :host ::ng-deep .p-dialog .p-dialog-content {
+      border-radius: 0 0 16px 16px;
+    }
+
+    :host ::ng-deep .p-tabview .p-tabview-panels {
+      padding: 1rem 0;
+    }
+
     /* Button Styling */
-    :host ::ng-deep .action-button {
+    :host ::ng-deep .p-button {
       border-radius: 8px;
       font-weight: 600;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
 
-    :host ::ng-deep .action-button:hover {
+    :host ::ng-deep .p-button:hover {
       transform: translateY(-2px);
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    }
-
-    :host ::ng-deep .action-button:focus {
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
     }
 
     /* Badge Styling */
@@ -922,80 +551,74 @@ interface ShiftWithRequests extends Shift {
       box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     }
 
-    :host ::ng-deep .p-toast .p-toast-message-success {
-      background: linear-gradient(135deg, #10b981, #059669);
-      border: none;
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .manager-calendar-container {
+        padding: 1rem;
+      }
+
+      .legend-container {
+        padding: 0.75rem 1rem;
+      }
+
+      .legend-item {
+        padding: 0.25rem 0;
+      }
+
+      .legend-text {
+        font-size: 0.8rem;
+      }
     }
 
-    :host ::ng-deep .p-toast .p-toast-message-error {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
-      border: none;
+    /* Grid System */
+    .grid {
+      display: grid;
     }
 
-    :host ::ng-deep .p-toast .p-toast-message-warn {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      border: none;
+    .grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    :host ::ng-deep .p-toast .p-toast-message-info {
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
-      border: none;
+    .grid-cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .gap-4 {
+      gap: 1rem;
+    }
+
+    @media (min-width: 768px) {
+      .md\\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
     }
   `]
 })
 export class ShiftCalendarManagerComponent implements OnInit {
+  @ViewChild('dynamicCalendar') dynamicCalendar!: DynamicCalendarComponent;
+
   private apiService = inject(ApiService);
   private messageService = inject(MessageService);
   private authService = inject(AuthService);
-  calendarOptions: CalendarOptions = {
-    initialView: 'timeGridWeek',
-    plugins: [dayGridPlugin, timeGridPlugin, interactionPlugin],
-    headerToolbar: {
-      left: 'prev,next today',
-      center: 'title',
-      right: 'dayGridMonth,timeGridWeek,timeGridDay'
-    },
-    editable: false,
-    selectable: false,
-    dayMaxEvents: true,
-    weekends: true,
-    eventClick: this.handleEventClick.bind(this),
+
+  // Calendar configuration
+  calendarConfig: CalendarConfig = {
+    userRole: 'manager',
     height: 'auto',
     slotMinTime: '06:00:00',
     slotMaxTime: '24:00:00',
-    slotDuration: '01:00:00',
-    slotLabelInterval: '01:00:00', // Show every hour like Google Calendar
-    allDaySlot: false,
-    nowIndicator: true,
     scrollTime: '08:00:00',
-    // Key settings for proper time spanning like Google Calendar
-    eventDisplay: 'block',
-    displayEventTime: false, // Hide time text to match Google Calendar style
-    displayEventEnd: false,
-    eventMinHeight: 0, // Allow events to be as small as needed
-    expandRows: true,
-    stickyHeaderDates: true,
-    dayHeaderFormat: { weekday: 'short', month: 'numeric', day: 'numeric' },
-    slotLabelFormat: {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: false
-    },
-    eventTimeFormat: {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: false
-    },
     businessHours: {
-      daysOfWeek: [1, 2, 3, 4, 5, 6, 0], // Monday - Sunday
+      daysOfWeek: [1, 2, 3, 4, 5, 6, 0],
       startTime: '08:00',
       endTime: '23:00'
     },
-    // Ensure proper event positioning and spanning
-    eventOverlap: true,
-    slotEventOverlap: false,
-    snapDuration: '00:15:00' // 15-minute precision like Google Calendar
+    editable: false,
+    selectable: false
   };
+
+  calendarEvents: CalendarEvent[] = [];
+  headerActions: HeaderAction[] = [];
 
   shifts: ShiftWithRequests[] = [];
   allRequests: ShiftRequest[] = [];
@@ -1014,7 +637,44 @@ export class ShiftCalendarManagerComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.initializeHeaderActions();
     this.loadData();
+  }
+
+  private initializeHeaderActions(): void {
+    this.headerActions = [
+      {
+        icon: 'pi pi-refresh',
+        label: 'Refresh',
+        severity: 'secondary',
+        loading: false,
+        action: 'refresh'
+      },
+      {
+        icon: 'pi pi-cog',
+        label: 'Auto Schedule',
+        severity: 'success',
+        loading: false,
+        action: 'autoSchedule'
+      },
+      {
+        icon: 'pi pi-users',
+        label: 'All Requests',
+        severity: 'help',
+        loading: false,
+        badge: this.pendingRequestsCount > 0 ? this.pendingRequestsCount.toString() : undefined,
+        badgeSeverity: 'danger',
+        action: 'allRequests'
+      }
+    ];
+  }
+
+  private updateHeaderActions(): void {
+    // Update the badge count for pending requests
+    const allRequestsAction = this.headerActions.find(action => action.action === 'allRequests');
+    if (allRequestsAction) {
+      allRequestsAction.badge = this.pendingRequestsCount > 0 ? this.pendingRequestsCount.toString() : undefined;
+    }
   }
 
   async loadData(): Promise<void> {
@@ -1058,7 +718,9 @@ export class ShiftCalendarManagerComponent implements OnInit {
       this.employees = employees;
 
       this.updateCalendarEvents();
+      this.updateHeaderActions();
     } catch (error) {
+      console.error('Error loading data:', error);
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
@@ -1070,7 +732,7 @@ export class ShiftCalendarManagerComponent implements OnInit {
   }
 
   updateCalendarEvents(): void {
-    const events = this.shifts.map(shift => {
+    this.calendarEvents = this.shifts.map(shift => {
       let className = 'fc-event-available';
       // Google Calendar style: Show time range and shift name
       let title = `${shift.name}\n${shift.startTime} - ${shift.endTime}`;
@@ -1091,7 +753,7 @@ export class ShiftCalendarManagerComponent implements OnInit {
         title = `${shift.name}\n${shift.startTime} - ${shift.endTime}\n${pendingCount} pending requests`;
       }
 
-            // Create proper Date objects for the shift
+      // Create proper Date objects for the shift
       const shiftDate = new Date(shift.date);
 
       // Parse start and end times
@@ -1114,15 +776,13 @@ export class ShiftCalendarManagerComponent implements OnInit {
         endDateTime.setDate(endDateTime.getDate() + 1);
       }
 
-
       return {
-        id: shift._id,
+        id: shift._id || '',
         title: title,
-        start: startDateTime, // Now using Date object
-        end: endDateTime, // Now using Date object
+        start: startDateTime,
+        end: endDateTime,
         className: className,
-        allDay: false, // Ensure it's treated as a timed event
-        display: 'auto', // Ensure proper display mode
+        allDay: false,
         extendedProps: {
           shift: shift,
           assignedEmployees: shift.assignedEmployees,
@@ -1130,16 +790,31 @@ export class ShiftCalendarManagerComponent implements OnInit {
         }
       };
     });
-
-    this.calendarOptions = {
-      ...this.calendarOptions,
-      events: events
-    };
   }
 
-  handleEventClick(clickInfo: EventClickArg): void {
-    this.selectedShift = clickInfo.event.extendedProps['shift'] as ShiftWithRequests;
+  handleEventClick(eventInfo: any): void {
+    this.selectedShift = eventInfo.event.extendedProps.shift as ShiftWithRequests;
     this.showShiftDialog = true;
+  }
+
+  handleHeaderAction(action: string): void {
+    switch (action) {
+      case 'refresh':
+        this.loadData();
+        break;
+      case 'autoSchedule':
+        this.showAutoScheduleDialog();
+        break;
+      case 'allRequests':
+        this.showAllRequests();
+        break;
+    }
+  }
+
+  handleTimeNavigation(time: string): void {
+    if (this.dynamicCalendar) {
+      this.dynamicCalendar.scrollToTime(time);
+    }
   }
 
   getShiftStatus(shift: Shift): string {
@@ -1211,6 +886,7 @@ export class ShiftCalendarManagerComponent implements OnInit {
       await this.refreshSelectedShift();
 
     } catch (error) {
+      console.error('Error approving request:', error);
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
@@ -1238,6 +914,7 @@ export class ShiftCalendarManagerComponent implements OnInit {
       await this.refreshSelectedShift();
 
     } catch (error) {
+      console.error('Error rejecting request:', error);
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
@@ -1255,7 +932,9 @@ export class ShiftCalendarManagerComponent implements OnInit {
     try {
       // Assuming there's an unassign endpoint - we might need to add this to the API service
       await firstValueFrom(this.apiService.updateShift(shift._id, {
-        assignedEmployees: shift.assignedEmployees.filter(id => id !== employeeId)
+        assignedEmployees: shift.assignedEmployees.filter(emp =>
+          typeof emp === 'string' ? emp !== employeeId : emp._id !== employeeId
+        )
       }));
 
       this.messageService.add({
@@ -1269,6 +948,7 @@ export class ShiftCalendarManagerComponent implements OnInit {
       await this.refreshSelectedShift();
 
     } catch (error) {
+      console.error('Error unassigning employee:', error);
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
@@ -1283,7 +963,7 @@ export class ShiftCalendarManagerComponent implements OnInit {
   private async refreshSelectedShift(): Promise<void> {
     if (this.selectedShift && this.selectedShift._id) {
       // Find the updated shift in the loaded data
-      const updatedShift = this.shifts.find(s => s._id === this.selectedShift!._id);
+      const updatedShift = this.shifts.find(s => s._id === this.selectedShift?._id);
       if (updatedShift) {
         this.selectedShift = updatedShift;
       }
@@ -1317,11 +997,11 @@ export class ShiftCalendarManagerComponent implements OnInit {
     }
   }
 
-    async executeAutoScheduling(): Promise<void> {
+  async executeAutoScheduling(): Promise<void> {
     this.autoScheduleLoading = true;
     try {
       // Get the current calendar view date range
-      const calendarApi = (document.querySelector('full-calendar') as any)?.getApi?.();
+      const calendarApi = this.dynamicCalendar?.getCalendarApi();
       let startDate = new Date();
       let endDate = new Date();
 
@@ -1355,7 +1035,7 @@ export class ShiftCalendarManagerComponent implements OnInit {
       }
 
       // Get shift IDs for the API call
-      const shiftIds = visibleShifts.map(shift => shift._id!).filter(id => id);
+      const shiftIds = visibleShifts.map(shift => shift._id || '').filter(id => id);
 
       if (shiftIds.length === 0) {
         this.messageService.add({
@@ -1389,12 +1069,12 @@ export class ShiftCalendarManagerComponent implements OnInit {
       await this.loadData();
       this.closeAutoScheduleDialog();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Auto-scheduling error:', error);
       this.messageService.add({
         severity: 'error',
         summary: 'Auto-Scheduling Failed',
-        detail: error.response?.data?.message || error.message || 'Failed to auto-assign employees to shifts. Please try again.'
+        detail: 'Failed to auto-assign employees to shifts. Please try again.'
       });
     } finally {
       this.autoScheduleLoading = false;

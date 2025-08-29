@@ -697,8 +697,10 @@ export class ShiftCalendarComponent implements OnInit {
       return shift.assignedEmployees.some((emp: any) => emp._id === userId);
     }
 
-    // If assignedEmployees contains just IDs
-    return (shift.assignedEmployees as string[]).includes(userId);
+    // Handle both Employee objects and string IDs
+    return shift.assignedEmployees.some(emp =>
+      typeof emp === 'string' ? emp === userId : emp._id === userId
+    );
   }
 
   getAssignedEmployees(shift: Shift): any[] {

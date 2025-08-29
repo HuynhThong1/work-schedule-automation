@@ -3,13 +3,47 @@ import { HttpClient, HttpParams, HttpErrorResponse } from '@angular/common/http'
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 
+// Enums for type safety
+export enum ShiftRequestStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected'
+}
+
+export enum EmployeeType {
+  NEW = 'new',
+  JUNIOR = 'junior',
+  SENIOR = 'senior'
+}
+
+export enum ManagerLevel {
+  MIDDLE = 'middle',
+  SENIOR = 'senior'
+}
+
+export enum ScheduleStatus {
+  DRAFT = 'draft',
+  PUBLISHED = 'published',
+  ARCHIVED = 'archived'
+}
+
+export enum DayOfWeek {
+  MONDAY = 'monday',
+  TUESDAY = 'tuesday',
+  WEDNESDAY = 'wednesday',
+  THURSDAY = 'thursday',
+  FRIDAY = 'friday',
+  SATURDAY = 'saturday',
+  SUNDAY = 'sunday'
+}
+
 export interface Employee {
   _id?: string;
   code: string;
   name: string;
   email: string;
   phone: string;
-  type: 'new' | 'junior';
+  type: EmployeeType;
   fullTime: boolean;
   salaryByHour: number;
   availability: AvailabilitySlot[];
@@ -24,26 +58,26 @@ export interface Manager {
   name: string;
   email: string;
   phone: string;
-  level: 'middle' | 'senior';
+  level: ManagerLevel;
   isActive: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 export interface AvailabilitySlot {
-  day: 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+  day: DayOfWeek;
   startTime: string;
   endTime: string;
 }
 
 export interface Shift {
-  _id?: string;
-  date: Date;
+  _id: string;
+  date: string;
   startTime: string;
   endTime: string;
   name: string;
   capacity: number;
-  assignedEmployees: string[];
+  assignedEmployees: Employee[];
   manager: string;
   isPublished: boolean;
   description?: string;
@@ -69,7 +103,7 @@ export interface Schedule {
   startDate: Date;
   endDate: Date;
   shifts: any[];
-  status: 'draft' | 'published' | 'archived';
+  status: ScheduleStatus;
   createdBy: any;
   notes?: string;
   isTemplate?: boolean;
@@ -90,11 +124,11 @@ export interface Timesheet {
 }
 
 export interface ShiftRequest {
-  _id?: string;
+  _id: string;
   employeeId: string;
   shiftId?: string;
   type: 'pickup' | 'drop' | 'swap';
-  status: 'pending' | 'approved' | 'rejected';
+  status: ShiftRequestStatus;
   reason?: string;
   reviewedBy?: string;
   reviewedAt?: Date;
@@ -105,6 +139,9 @@ export interface ShiftRequest {
   date?: Date;
   startTime?: string;
   endTime?: string;
+  // Populated data
+  employee?: Employee;
+  shift?: Shift;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -329,6 +366,11 @@ export class ApiService {
 
   updateShiftRequest(id: string, request: Partial<ShiftRequest>): Observable<ShiftRequest> {
     return this.http.patch<ShiftRequest>(`${this.baseUrl}/shift-requests/${id}`, request)
+      .pipe(catchError(this.handleError));
+  }
+
+  updateShiftRequestStatus(id: string, status: ShiftRequestStatus): Observable<ShiftRequest> {
+    return this.http.patch<ShiftRequest>(`${this.baseUrl}/shift-requests/${id}`, { status })
       .pipe(catchError(this.handleError));
   }
 
