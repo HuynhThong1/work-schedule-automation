@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
@@ -27,12 +27,12 @@ export class LoginComponent {
   loginForm: FormGroup;
   loading = false;
 
-  constructor(
-    private fb: FormBuilder,
-    private authService: AuthService,
-    private router: Router,
-    private messageService: MessageService
-  ) {
+  private fb = inject(FormBuilder);
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private messageService = inject(MessageService);
+
+  constructor() {
     this.loginForm = this.fb.group({
       code: ['', [Validators.required]]
     });

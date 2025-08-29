@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CardModule } from 'primeng/card';
@@ -35,12 +35,10 @@ import { ButtonModule } from 'primeng/button';
   styles: []
 })
 export class FeaturePlaceholderComponent implements OnInit {
-  currentRoute: string = '';
+  currentRoute = '';
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router
-  ) {}
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
 
   ngOnInit(): void {
     this.currentRoute = this.router.url;

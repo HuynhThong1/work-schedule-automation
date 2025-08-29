@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
@@ -20,7 +20,7 @@ import { AuthService, User } from '../../services/auth.service';
 export class DashboardComponent implements OnInit {
   currentUser: User | null = null;
 
-  constructor(private authService: AuthService) {}
+  private authService = inject(AuthService);
 
   ngOnInit(): void {
     this.currentUser = this.authService.getCurrentUser();
@@ -28,10 +28,6 @@ export class DashboardComponent implements OnInit {
 
   get welcomeMessage(): string {
     if (!this.currentUser) return 'Welcome!';
-
-    const role = this.currentUser.role === 'manager'
-      ? `${this.currentUser.type} manager`
-      : this.currentUser.role;
 
     return `Welcome back, ${this.currentUser.name}!`;
   }

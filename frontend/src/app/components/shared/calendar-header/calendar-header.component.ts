@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { TooltipModule } from 'primeng/tooltip';
@@ -89,7 +89,7 @@ export class CalendarHeaderComponent implements OnInit {
 
   timeSlots: { time: string; label: string; icon: string; }[] = [];
 
-  constructor(private calendarService: CalendarService) {}
+  private calendarService = inject(CalendarService);
 
   ngOnInit(): void {
     this.timeSlots = this.calendarService.getTimeSlots();

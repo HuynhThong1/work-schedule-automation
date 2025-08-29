@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { MenuItem } from 'primeng/api';
@@ -20,7 +20,7 @@ export class NavbarComponent implements OnInit {
   items: MenuItem[] = [];
   currentUser: User | null = null;
 
-  constructor(private authService: AuthService) {}
+  private authService = inject(AuthService);
 
   ngOnInit(): void {
     this.authService.currentUser$.subscribe(user => {

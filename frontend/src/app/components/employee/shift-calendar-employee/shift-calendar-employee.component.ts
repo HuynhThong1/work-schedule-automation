@@ -233,7 +233,7 @@ export class ShiftCalendarEmployeeComponent implements OnInit {
   // Data properties
   shifts: ShiftWithRequests[] = [];
   myRequests: ShiftRequest[] = [];
-  currentUser: any;
+  currentUser: any; // TODO: Type this properly when User interface is available
 
   // Calendar properties
   calendarEvents: CalendarEvent[] = [];
@@ -418,7 +418,7 @@ export class ShiftCalendarEmployeeComponent implements OnInit {
   }
 
   // Calendar event handlers
-  handleEventClick(eventInfo: any): void {
+  handleEventClick(eventInfo: { event: { id: string } }): void {
     const shiftId = eventInfo.event.id;
     const shift = this.shifts.find(s => s._id === shiftId);
     if (shift) {
@@ -427,7 +427,7 @@ export class ShiftCalendarEmployeeComponent implements OnInit {
     }
   }
 
-  handleDateSelect(selectInfo: any): void {
+  handleDateSelect(selectInfo: { start: Date; end: Date; allDay: boolean }): void {
     // Handle date selection (future feature for requesting custom shifts)
     console.log('Date selected:', selectInfo);
   }

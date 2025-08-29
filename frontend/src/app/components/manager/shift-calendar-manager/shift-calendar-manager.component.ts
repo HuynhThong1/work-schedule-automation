@@ -623,7 +623,7 @@ export class ShiftCalendarManagerComponent implements OnInit {
   shifts: ShiftWithRequests[] = [];
   allRequests: ShiftRequest[] = [];
   allPendingRequests: ShiftRequest[] = [];
-  employees: any[] = [];
+  employees: any[] = []; // TODO: Type this properly when Employee interface is available
 
   selectedShift: ShiftWithRequests | null = null;
   showShiftDialog = false;
@@ -792,7 +792,7 @@ export class ShiftCalendarManagerComponent implements OnInit {
     });
   }
 
-  handleEventClick(eventInfo: any): void {
+  handleEventClick(eventInfo: { event: { extendedProps: { shift: ShiftWithRequests } } }): void {
     this.selectedShift = eventInfo.event.extendedProps.shift as ShiftWithRequests;
     this.showShiftDialog = true;
   }
@@ -839,24 +839,24 @@ export class ShiftCalendarManagerComponent implements OnInit {
     return shift.requests || [];
   }
 
-  getAssignedEmployees(shift: Shift): any[] {
+  getAssignedEmployees(shift: Shift): any[] { // TODO: Type this properly when Employee interface is available
     if (!shift.assignedEmployees || !shift.assignedEmployees.length) return [];
     return this.employees.filter(emp => shift.assignedEmployees.includes(emp._id));
   }
 
-  getEmployeeName(employeeId: any): string {
+  getEmployeeName(employeeId: string | { name: string }): string {
     if (typeof employeeId === 'object' && employeeId.name) return employeeId.name;
     const employee = this.employees.find(emp => emp._id === employeeId);
     return employee?.name || 'Unknown Employee';
   }
 
-  getEmployeeCode(employeeId: any): string {
+  getEmployeeCode(employeeId: string | { code: string }): string {
     if (typeof employeeId === 'object' && employeeId.code) return employeeId.code;
     const employee = this.employees.find(emp => emp._id === employeeId);
     return employee?.code || 'N/A';
   }
 
-  getEmployeeInitials(employeeId: any): string {
+  getEmployeeInitials(employeeId: string | { name: string }): string {
     const name = this.getEmployeeName(employeeId);
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   }

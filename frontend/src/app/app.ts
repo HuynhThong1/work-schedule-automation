@@ -1,15 +1,14 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { AuthService } from './services/auth.service';
-import { NavbarComponent } from './components/layout/navbar/navbar.component';
 
 @Component({
   selector: 'app-root',
-  standalone: false,
+  standalone: true,
   templateUrl: './app.html',
   styleUrls: ['./app.scss'],
 })
 export class App {
   protected title = 'frontend';
 
-  constructor(public authService: AuthService) {}
+  public authService = inject(AuthService);
 }
