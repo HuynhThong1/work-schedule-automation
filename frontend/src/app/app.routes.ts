@@ -9,7 +9,7 @@ import { ShiftManagementComponent } from './components/manager/shift-management/
 import { ScheduleManagementComponent } from './components/manager/schedule-management/schedule-management.component';
 import { ShiftCalendarManagerComponent } from './components/manager/shift-calendar-manager/shift-calendar-manager.component';
 import { RulesManagementComponent } from './components/manager/rules-management/rules-management.component';
-import { ShiftCalendarComponent } from './components/employee/shift-calendar/shift-calendar.component';
+import { ShiftCalendarEmployeeComponent } from './components/employee/shift-calendar-employee/shift-calendar-employee.component';
 
 export const appRoutes: Route[] = [
   {
@@ -31,7 +31,7 @@ export const appRoutes: Route[] = [
     path: 'employee',
     canActivate: [AuthGuard],
     children: [
-      { path: 'schedule', component: ShiftCalendarComponent },
+      { path: 'schedule', component: ShiftCalendarEmployeeComponent },
       { path: 'availability', component: FeaturePlaceholderComponent },
       { path: 'timesheet', component: FeaturePlaceholderComponent },
     ],
