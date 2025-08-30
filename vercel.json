@@ -3,7 +3,10 @@
   "builds": [
     {
       "src": "dist/backend/main.js",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "maxLambdaSize": "50mb"
+      }
     },
     {
       "src": "dist/frontend/**/*",
@@ -25,5 +28,10 @@
     "JWT_SECRET": "@jwt_secret",
     "NODE_ENV": "production",
     "TZ": "Asia/Ho_Chi_Minh"
+  },
+  "functions": {
+    "dist/backend/main.js": {
+      "maxDuration": 30
+    }
   }
 }
