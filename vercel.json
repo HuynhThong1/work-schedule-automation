@@ -3,14 +3,7 @@
   "builds": [
     {
       "src": "dist/backend/main.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
-    },
-    {
-      "src": "dist/frontend/**/*",
-      "use": "@vercel/static"
+      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -26,12 +19,7 @@
   "env": {
     "MONGODB_URI": "@mongodb_uri",
     "JWT_SECRET": "@jwt_secret",
-    "NODE_ENV": "production",
-    "TZ": "Asia/Ho_Chi_Minh"
+    "NODE_ENV": "production"
   },
-  "functions": {
-    "dist/backend/main.js": {
-      "maxDuration": 30
-    }
-  }
+  "outputDirectory": "dist"
 }
