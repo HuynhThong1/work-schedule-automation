@@ -17,7 +17,6 @@ import { AuthInterceptor } from './services/http-interceptor.service';
 
 @NgModule({
   declarations: [
-    App,
   ],
   imports: [
     BrowserModule,
@@ -47,6 +46,6 @@ import { AuthInterceptor } from './services/http-interceptor.service';
       multi: true,
     },
   ],
-  bootstrap: [App],
+  bootstrap: [],
 })
 export class AppModule {}
