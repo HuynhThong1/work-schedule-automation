@@ -141,7 +141,13 @@ export class DynamicCalendarComponent implements OnInit, OnChanges {
   }
 
   private updateCalendarEvents(): void {
-    if (!this.events) return;
+    if (!this.events) {
+      this.calendarOptions = {
+        ...this.calendarOptions,
+        events: []
+      };
+      return;
+    }
 
     const formattedEvents: EventInput[] = this.events.map(event => {
       let startDateTime: Date;
