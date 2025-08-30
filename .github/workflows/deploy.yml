@@ -2,9 +2,9 @@ name: Deploy to Vercel
 
 on:
   push:
-    branches: [ dev, build ]
+    branches: [ build ]
   pull_request:
-    branches: [ dev, build ]
+    branches: [ build ]
 
 jobs:
   test:
@@ -40,7 +40,7 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/build'
 
     steps:
     - uses: actions/checkout@v4
