@@ -37,6 +37,7 @@
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/schedule": "^6.0.0",
     "@primeng/themes": "^20.0.1",
+    "@vercel/analytics": "^1.5.0",
     "axios": "^1.6.0",
     "bcryptjs": "^3.0.2",
     "class-transformer": "^0.5.1",
