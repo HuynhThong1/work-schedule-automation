@@ -1,0 +1,88 @@
+# Build outputs
+dist/
+tmp/
+out-tsc/
+build/
+
+# Dependencies
+node_modules/
+.pnp.*
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Coverage
+coverage/
+*.lcov
+
+# Compiled output
+*.js.map
+*.d.ts.map
+
+# Lock files (unless needed for reproducible builds)
+package-lock.json
+yarn.lock
+
+# Generated files
+*.generated.ts
+*.generated.js
+
+# Test coverage
+coverage/
+
+# Documentation build outputs
+docs/build/
+
+# Nx cache
+.nx/cache/
+.nx/workspace-data/
+
+# Large data files
+*.sql
+*.dump
+*.backup
+
+# Temporary files
+*.tmp
+*.temp
+.temp/
+.tmp/
+
+# Browser downloads
+downloads/
+
+# Build artifacts
+*.tgz
+*.tar.gz
+
+# Local development databases
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE specific files
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
