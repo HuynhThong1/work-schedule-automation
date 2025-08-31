@@ -4,6 +4,10 @@
     {
       "src": "dist/backend/main.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "dist/frontend/**/*",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -12,12 +16,19 @@
       "dest": "/dist/backend/main.js"
     },
     {
-      "src": "/(.*)",
+      "src": "/assets/(.*)",
+      "dest": "/dist/frontend/assets/$1"
+    },
+    {
+      "src": "/(.*\\.(js|css|ico|svg|woff|woff2|ttf|eot))",
       "dest": "/dist/frontend/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist/frontend/index.html"
     }
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "outputDirectory": "dist"
+  }
 }
