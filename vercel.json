@@ -6,7 +6,7 @@
       "use": "@vercel/node"
     },
     {
-      "src": "dist/frontend/**/*",
+      "src": "dist/frontend/**",
       "use": "@vercel/static"
     }
   ],
@@ -16,16 +16,15 @@
       "dest": "/dist/backend/main.js"
     },
     {
-      "src": "/assets/(.*)",
-      "dest": "/dist/frontend/assets/$1"
-    },
-    {
-      "src": "/(.*\\.(js|css|ico|svg|woff|woff2|ttf|eot))",
-      "dest": "/dist/frontend/$1"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/dist/frontend/index.html"
+      "dest": "/dist/frontend/$1"
+    }
+  ],
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/((?!api/.*).*)",
+      "destination": "/dist/frontend/index.html"
     }
   ],
   "env": {
