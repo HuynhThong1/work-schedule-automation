@@ -6,18 +6,22 @@
       "use": "@vercel/node"
     },
     {
-      "src": "dist/frontend/**",
+      "src": "dist/frontend/**/*",
       "use": "@vercel/static"
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/dist/backend/main.js"
+      "src": "/api/(.*)",
+      "dest": "/dist/backend/main.js"
     },
     {
-      "source": "/((?!.*\\.).*)",
-      "destination": "/dist/frontend/index.html"
+      "src": "/(.*\\.(js|css|ico|svg|woff|woff2|ttf|eot|png|jpg|jpeg|gif|txt))",
+      "dest": "/dist/frontend/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist/frontend/index.html"
     }
   ],
   "env": {
