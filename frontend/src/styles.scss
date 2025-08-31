@@ -5,11 +5,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* PrimeNG v20+ - New theming system */
-/* PrimeNG v20+ doesn't use traditional CSS imports - themes are handled via Angular configuration */
-/* Using PrimeIcons from node_modules */
+/* PrimeNG v20+ - Icons */
 @import "primeicons/primeicons.css";
-
 
 /* Global Styles */
 body {
@@ -28,4 +25,24 @@ body {
 .content-wrapper {
   flex: 1;
   padding: 1rem;
+}
+
+/* TailwindCSS + PrimeNG compatibility */
+.p-component {
+  font-family: inherit;
+}
+
+/* Ensure PrimeNG buttons work with TailwindCSS */
+.p-button {
+  transition: all 0.2s;
+}
+
+/* Fix for PrimeNG input styling with TailwindCSS */
+.p-inputtext {
+  width: 100%;
+}
+
+/* PrimeNG Card styling */
+.p-card {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
