@@ -12,8 +12,8 @@ import { AvatarModule } from 'primeng/avatar';
 import { MessageService } from 'primeng/api';
 import { firstValueFrom } from 'rxjs';
 
-import { ApiService, Shift, ShiftRequest, ShiftRequestStatus, EmployeeType } from '../../../services/api.service';
-import { AuthService } from '../../../services/auth.service';
+import { ApiService, Shift, ShiftRequest, ShiftRequestStatus, EmployeeType, RequestType } from '../../../services/api.service';
+import { AuthService, User } from '../../../services/auth.service';
 import { CalendarService } from '../../../services/calendar.service';
 import { DynamicCalendarComponent, CalendarEvent, CalendarConfig } from '../../shared/dynamic-calendar/dynamic-calendar.component';
 import { CalendarHeaderComponent, HeaderAction } from '../../shared/calendar-header/calendar-header.component';
@@ -61,7 +61,7 @@ interface ShiftWithRequests extends Shift {
 
         <!-- Legend -->
         <div class="legend-container">
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             <div class="legend-item">
               <div class="legend-color" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
               <span class="legend-text">Available to Request</span>
@@ -77,6 +77,18 @@ interface ShiftWithRequests extends Shift {
             <div class="legend-item">
               <div class="legend-color" style="background: linear-gradient(135deg, #ef4444, #dc2626);"></div>
               <span class="legend-text">Full / Unavailable 🔒</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: 2px solid #b91c1c; opacity: 0.8;"></div>
+              <span class="legend-text">Request Rejected ❌</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: 2px dashed #b45309;"></div>
+              <span class="legend-text">Your Shift Requests ⏰</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: 2px dashed #b91c1c; opacity: 0.6;"></div>
+              <span class="legend-text">Rejected Requests ❌</span>
             </div>
           </div>
         </div>
@@ -98,6 +110,8 @@ interface ShiftWithRequests extends Shift {
         [visible]="showShiftDialog"
         [modal]="true"
         [closable]="true"
+        [closeOnEscape]="true"
+        [dismissableMask]="true"
         [draggable]="false"
         [resizable]="false"
         styleClass="shift-dialog"
@@ -154,9 +168,9 @@ interface ShiftWithRequests extends Shift {
           </div>
 
           <!-- Other Assigned Employees -->
-          <div *ngIf="selectedShift.assignedEmployees?.length" class="assigned-employees">
-            <p class="section-title">Other Assigned Employees</p>
-            <div class="employees-list">
+          <div class="assigned-employees">
+            <p class="section-title">Assigned Employees ({{ selectedShift.assignedEmployees?.length || 0 }})</p>
+            <div *ngIf="selectedShift.assignedEmployees?.length; else noEmployees" class="employees-list">
               <div *ngFor="let employee of selectedShift.assignedEmployees" class="employee-item">
                 <p-avatar [label]="employee.name || ''" size="normal"></p-avatar>
                 <div class="employee-info">
@@ -166,8 +180,20 @@ interface ShiftWithRequests extends Shift {
                 </div>
               </div>
             </div>
+            <ng-template #noEmployees>
+              <p class="no-employees">No employees assigned to this shift yet.</p>
+            </ng-template>
           </div>
         </div>
+
+        <ng-template pTemplate="footer">
+          <p-button
+            label="Close"
+            icon="pi pi-times"
+            severity="secondary"
+            (onClick)="closeShiftDialog()">
+          </p-button>
+        </ng-template>
       </p-dialog>
 
       <!-- My Requests Dialog -->
@@ -176,6 +202,8 @@ interface ShiftWithRequests extends Shift {
         [visible]="showMyRequestsDialog"
         [modal]="true"
         [closable]="true"
+        [closeOnEscape]="true"
+        [dismissableMask]="true"
         [draggable]="false"
         [resizable]="false"
         styleClass="my-requests-dialog"
@@ -214,6 +242,15 @@ interface ShiftWithRequests extends Shift {
             </tr>
           </ng-template>
         </p-table>
+
+        <ng-template pTemplate="footer">
+          <p-button
+            label="Close"
+            icon="pi pi-times"
+            severity="secondary"
+            (onClick)="closeMyRequestsDialog()">
+          </p-button>
+        </ng-template>
       </p-dialog>
     </div>
   `,
@@ -233,7 +270,7 @@ export class ShiftCalendarEmployeeComponent implements OnInit {
   // Data properties
   shifts: ShiftWithRequests[] = [];
   myRequests: ShiftRequest[] = [];
-  currentUser: any; // TODO: Type this properly when User interface is available
+  currentUser: User | null;
 
   // Calendar properties
   calendarEvents: CalendarEvent[] = [];
@@ -267,6 +304,12 @@ export class ShiftCalendarEmployeeComponent implements OnInit {
   constructor() {
     this.calendarConfig = this.calendarService.getCalendarConfig('employee');
     this.currentUser = this.authService.getCurrentUser();
+
+    if (!this.currentUser) {
+      // Handle case where user is not logged in
+      console.error('User not logged in');
+      return;
+    }
   }
 
   get myPendingRequestsCount(): number {
@@ -284,7 +327,7 @@ export class ShiftCalendarEmployeeComponent implements OnInit {
       // Load shifts and requests in parallel
       const [shiftsResponse, requestsResponse] = await Promise.all([
         firstValueFrom(this.apiService.getShifts()),
-        firstValueFrom(this.apiService.getShiftRequests())
+        firstValueFrom(this.apiService.getMyShiftRequests())
       ]);
 
       this.shifts = shiftsResponse.map(shift => ({
@@ -296,8 +339,27 @@ export class ShiftCalendarEmployeeComponent implements OnInit {
         userRequest: undefined
       }));
 
-      // Filter requests for current user
-      this.myRequests = requestsResponse.filter(req => req.employeeId === this.currentUser.id);
+      console.log('Loaded shifts with assigned employees:', this.shifts.map(s => ({
+        id: s._id,
+        name: s.name,
+        assignedEmployees: s.assignedEmployees
+      })));
+
+      // Use the requests directly since getMyShiftRequests already filters for current user
+      this.myRequests = requestsResponse;
+
+      // If myRequests is empty but shifts have userRequest data, extract them
+      if (this.myRequests.length === 0) {
+        this.myRequests = this.shifts
+          .filter(shift => shift.userRequest)
+          .map(shift => ({
+            ...shift.userRequest as ShiftRequest,
+            shift: shift // Ensure shift data is included
+          }));
+        console.log('Extracted requests from shift data:', this.myRequests);
+      } else {
+        console.log('Using API requests:', this.myRequests);
+      }
 
       // Process shifts for employee view
       this.processShiftsForEmployee();
@@ -321,20 +383,45 @@ export class ShiftCalendarEmployeeComponent implements OnInit {
   }
 
   private processShiftsForEmployee(): void {
+    if (!this.currentUser) return;
+
     this.shifts.forEach(shift => {
-      // Find user's request for this shift
-      const userRequest = this.myRequests.find(req => req.shiftId === shift._id);
+      // Find user's request for this shift - try both direct shiftId match and date/time match
+      const userRequest = this.myRequests.find(req => {
+        // Direct shift ID match
+        if (req.shiftId === shift._id) {
+          return true;
+        }
+
+        // Date and time match for requests without shiftId
+        if (req.date && req.startTime && req.endTime) {
+          const requestDate = new Date(req.date);
+          const shiftDate = new Date(shift.date);
+          const dateMatches = requestDate.toDateString() === shiftDate.toDateString();
+          const timeMatches = req.startTime === shift.startTime && req.endTime === shift.endTime;
+          return dateMatches && timeMatches;
+        }
+
+        return false;
+      });
+
       shift.userRequest = userRequest;
 
       // Determine if user can request this shift
-      shift.canRequest = this.calendarService.canInteractWithShift(shift, 'employee', this.currentUser.id);
+      shift.canRequest = this.currentUser ? this.calendarService.canInteractWithShift(shift, 'employee', this.currentUser.id) : false;
+
+      // If user has a request for this shift, they can't request again
+      if (userRequest && userRequest.status === ShiftRequestStatus.PENDING) {
+        shift.canRequest = false;
+      }
     });
   }
 
   private updateCalendarEvents(): void {
-    this.calendarEvents = this.shifts.filter(shift => shift._id).map(shift => {
+    // Start with shift-based events
+    const shiftEvents = this.shifts.filter(shift => shift._id).map(shift => {
       const assignedCount = shift.assignedEmployees ? shift.assignedEmployees.length : 0;
-      const isUserAssigned = shift.assignedEmployees?.some(emp => emp._id === this.currentUser.id);
+      const isUserAssigned = shift.assignedEmployees?.some(emp => emp._id === (this.currentUser?.id || ''));
       const userRequest = shift.userRequest;
 
       // Determine event styling based on user's relationship to the shift
@@ -346,7 +433,10 @@ export class ShiftCalendarEmployeeComponent implements OnInit {
         title = `${shift.name} (Your Shift)\n${shift.startTime} - ${shift.endTime}`;
       } else if (userRequest?.status === ShiftRequestStatus.PENDING) {
         className = 'fc-event-pending';
-        title = `${shift.name} (Pending)\n${shift.startTime} - ${shift.endTime}`;
+        title = `${shift.name} (Pending Request)\n${shift.startTime} - ${shift.endTime}`;
+      } else if (userRequest?.status === ShiftRequestStatus.REJECTED) {
+        className = 'fc-event-rejected'; // Use special styling for rejected requests
+        title = `${shift.name} (Request Rejected)\n${shift.startTime} - ${shift.endTime}`;
       } else if (assignedCount >= shift.capacity || !shift.canRequest) {
         className = 'fc-event-full';
         title = `${shift.name} (Full)\n${shift.startTime} - ${shift.endTime}`;
@@ -379,10 +469,125 @@ export class ShiftCalendarEmployeeComponent implements OnInit {
         allDay: false,
         extendedProps: {
           shift: shift,
-          userRole: 'employee'
+          userRole: 'employee',
+          type: 'shift'
         }
       };
     });
+
+    // Add events for all shift requests, including those for existing shifts
+    console.log('Creating request events from:', this.myRequests);
+
+    const requestEvents = this.myRequests
+      .map((req) => {
+        console.log('Processing request:', req);
+
+        let className = 'fc-event-request-pending';
+        let title = '';
+        let startDateTime = '';
+        let endDateTime = '';
+
+        if (req.status === ShiftRequestStatus.REJECTED) {
+          className = 'fc-event-request-rejected';
+        } else if (req.status === ShiftRequestStatus.APPROVED) {
+          className = 'fc-event-request-approved';
+        }
+
+        // Handle requests for existing shifts
+        if (req.shiftId && req.shift) {
+          title = `${req.shift.name} Request`;
+          if (req.status === ShiftRequestStatus.PENDING) {
+            title += ' (Pending)';
+          } else if (req.status === ShiftRequestStatus.REJECTED) {
+            title += ' (Rejected)';
+          } else if (req.status === ShiftRequestStatus.APPROVED) {
+            title += ' (Approved)';
+          }
+
+          const shiftDate = new Date(req.shift.date);
+          const dateStr = shiftDate.toISOString().split('T')[0];
+          startDateTime = `${dateStr}T${this.formatTime(req.shift.startTime)}`;
+          endDateTime = `${dateStr}T${this.formatTime(req.shift.endTime)}`;
+
+          // Handle overnight shifts
+          const startTime = req.shift.startTime.split(':').map(Number);
+          const endTime = req.shift.endTime.split(':').map(Number);
+          const startMinutes = startTime[0] * 60 + startTime[1];
+          const endMinutes = endTime[0] * 60 + endTime[1];
+
+          if (req.shift.endTime === '00:00' || endMinutes < startMinutes) {
+            const nextDay = new Date(shiftDate);
+            nextDay.setDate(nextDay.getDate() + 1);
+            endDateTime = `${nextDay.toISOString().split('T')[0]}T${this.formatTime(req.shift.endTime)}`;
+          }
+        }
+        // Handle direct shift requests (requests without an existing shift)
+        else if (!req.shiftId && req.date && req.startTime && req.endTime) {
+          title = `Requested Shift\n${req.startTime} - ${req.endTime}`;
+          if (req.status === ShiftRequestStatus.REJECTED) {
+            title = `Rejected Request\n${req.startTime} - ${req.endTime}`;
+          }
+
+          const requestDate = new Date(req.date as Date);
+          const dateStr = requestDate.toISOString().split('T')[0];
+          startDateTime = `${dateStr}T${this.formatTime(req.startTime as string)}`;
+          endDateTime = `${dateStr}T${this.formatTime(req.endTime as string)}`;
+
+          // Handle overnight requests
+          const startTime = (req.startTime as string).split(':').map(Number);
+          const endTime = (req.endTime as string).split(':').map(Number);
+          const startMinutes = startTime[0] * 60 + startTime[1];
+          const endMinutes = endTime[0] * 60 + endTime[1];
+
+          if (req.endTime === '00:00' || endMinutes < startMinutes) {
+            const nextDay = new Date(requestDate);
+            nextDay.setDate(nextDay.getDate() + 1);
+            endDateTime = `${nextDay.toISOString().split('T')[0]}T${this.formatTime(req.endTime as string)}`;
+          }
+        } else {
+          // Skip requests that don't have enough information
+          return null;
+        }
+
+        if (!startDateTime || !endDateTime || !title) {
+          console.log('Skipping request due to missing data:', { startDateTime, endDateTime, title });
+          return null;
+        }
+
+        const event = {
+          id: `request-${req._id}`,
+          title: title,
+          start: new Date(startDateTime),
+          end: new Date(endDateTime),
+          className: className,
+          allDay: false,
+          extendedProps: {
+            request: req,
+            userRole: 'employee',
+            type: 'request'
+          }
+        };
+
+        console.log('Created request event:', event);
+        return event;
+      })
+      .filter(event => event !== null); // Remove null events
+
+    // Combine all events
+    this.calendarEvents = [...shiftEvents, ...requestEvents];
+    console.log('Final calendar events:', this.calendarEvents);
+    console.log('Events count - Shifts:', shiftEvents.length, 'Requests:', requestEvents.length);
+
+    // Verify event structure
+    if (requestEvents.length > 0) {
+      console.log('Sample request event structure:', requestEvents[0]);
+      console.log('Event has required properties:', {
+        id: !!requestEvents[0].id,
+        title: !!requestEvents[0].title,
+        start: !!requestEvents[0].start,
+        end: !!requestEvents[0].end
+      });
+    }
   }
 
   private formatTime(time: string): string {
@@ -418,12 +623,26 @@ export class ShiftCalendarEmployeeComponent implements OnInit {
   }
 
   // Calendar event handlers
-  handleEventClick(eventInfo: { event: { id: string } }): void {
-    const shiftId = eventInfo.event.id;
-    const shift = this.shifts.find(s => s._id === shiftId);
-    if (shift) {
-      this.selectedShift = shift;
-      this.showShiftDialog = true;
+  handleEventClick(eventInfo: { event: { id: string; extendedProps: { type?: string; shift?: ShiftWithRequests; request?: ShiftRequest } } }): void {
+    const eventId = eventInfo.event.id;
+    const extendedProps = eventInfo.event.extendedProps;
+
+    if (extendedProps.type === 'shift') {
+      // Handle shift click
+      const shift = this.shifts.find(s => s._id === eventId);
+      if (shift) {
+        console.log('Selected shift for dialog:', {
+          id: shift._id,
+          name: shift.name,
+          assignedEmployees: shift.assignedEmployees,
+          assignedEmployeesLength: shift.assignedEmployees?.length
+        });
+        this.selectedShift = shift;
+        this.showShiftDialog = true;
+      }
+    } else if (extendedProps.type === 'request') {
+      // Handle direct request click - show in My Requests dialog
+      this.showMyRequests();
     }
   }
 
@@ -438,25 +657,34 @@ export class ShiftCalendarEmployeeComponent implements OnInit {
   }
 
   closeShiftDialog(): void {
-    if (!this.requestLoading) {
-      this.showShiftDialog = false;
-      this.selectedShift = null;
+    // Always allow closing the dialog, but warn if there's an ongoing operation
+    if (this.requestLoading) {
+      console.warn('Dialog closed while request is in progress');
     }
+    this.showShiftDialog = false;
+    this.selectedShift = null;
+    this.requestLoading = false; // Reset loading state when closing
   }
 
   closeMyRequestsDialog(): void {
-    if (!this.requestLoading) {
-      this.showMyRequestsDialog = false;
+    // Always allow closing the dialog, but warn if there's an ongoing operation
+    if (this.requestLoading) {
+      console.warn('Dialog closed while request is in progress');
     }
+    this.showMyRequestsDialog = false;
+    this.requestLoading = false; // Reset loading state when closing
   }
 
   // Request management
   async requestShift(shift: ShiftWithRequests): Promise<void> {
+    if (!this.currentUser) return;
+
     this.requestLoading = true;
     try {
       await firstValueFrom(this.apiService.createShiftRequest({
         shiftId: shift._id,
-        employeeId: this.currentUser.id
+        employeeId: this.currentUser.id,
+        type: RequestType.REQUEST
       }));
 
       this.messageService.add({

@@ -13,6 +13,7 @@ import { RulesModule } from '../rules/rules.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
 import { TimesheetsModule } from '../timesheets/timesheets.module';
 import { ShiftRequestsModule } from '../shift-requests/shift-requests.module';
+import { AdminModule } from '../admin/admin.module';
 import { SeedService } from '../seeds/seed-data';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Employee, EmployeeSchema } from '../schemas/employee.schema';
@@ -37,6 +38,7 @@ import configuration from '../config/configuration';
     SchedulingModule,
     TimesheetsModule,
     ShiftRequestsModule,
+    AdminModule,
     MongooseModule.forFeature([
       { name: Employee.name, schema: EmployeeSchema },
       { name: Manager.name, schema: ManagerSchema },

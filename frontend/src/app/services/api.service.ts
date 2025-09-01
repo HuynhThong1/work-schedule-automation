@@ -98,6 +98,13 @@ export interface Rule {
   updatedAt?: Date;
 }
 
+export enum RequestType {
+  REQUEST = 'request', // Employee requests a shift
+  SWAP = 'swap', // Employee wants to swap shifts
+  DROP = 'drop', // Employee wants to drop a shift
+  PICKUP = 'pickup', // Employee wants to pickup a shift
+}
+
 export interface Schedule {
   _id?: string;
   name: string;
@@ -128,7 +135,7 @@ export interface ShiftRequest {
   _id: string;
   employeeId: string;
   shiftId?: string;
-  type: 'pickup' | 'drop' | 'swap';
+  type: RequestType;
   status: ShiftRequestStatus;
   reason?: string;
   reviewedBy?: string;

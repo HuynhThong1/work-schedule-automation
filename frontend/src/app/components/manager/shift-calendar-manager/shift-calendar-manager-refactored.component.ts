@@ -2,7 +2,6 @@ import { Component, OnInit, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
-import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
@@ -15,11 +14,12 @@ import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { firstValueFrom } from 'rxjs';
 
-import { ApiService, Shift, ShiftRequest, ShiftRequestStatus, EmployeeType } from '../../../services/api.service';
+import { ApiService, Shift, ShiftRequest, ShiftRequestStatus, EmployeeType, Employee } from '../../../services/api.service';
 import { AuthService } from '../../../services/auth.service';
 import { CalendarService } from '../../../services/calendar.service';
 import { DynamicCalendarComponent, CalendarEvent, CalendarConfig } from '../../shared/dynamic-calendar/dynamic-calendar.component';
 import { CalendarHeaderComponent, HeaderAction } from '../../shared/calendar-header/calendar-header.component';
+import { PopupComponent, PopupAction } from '../../shared/popup/popup.component';
 
 interface ShiftWithRequests extends Shift {
   requests: ShiftRequest[];
@@ -34,7 +34,7 @@ interface ShiftWithRequests extends Shift {
     CommonModule,
     CardModule,
     ButtonModule,
-    DialogModule,
+    PopupComponent,
     TableModule,
     TagModule,
     ToastModule,
@@ -97,15 +97,16 @@ interface ShiftWithRequests extends Shift {
       </p-card>
 
       <!-- Shift Details Dialog -->
-      <p-dialog
-        header="Shift Details"
+      <app-popup
+        title="Shift Details"
         [visible]="showShiftDialog"
+        width="800px"
         [modal]="true"
         [closable]="true"
         [draggable]="false"
         [resizable]="false"
         styleClass="shift-dialog"
-        (onHide)="closeShiftDialog()">
+        (closed)="closeShiftDialog()">
 
         <div *ngIf="selectedShift" class="shift-details">
           <div class="shift-info">
@@ -167,18 +168,22 @@ interface ShiftWithRequests extends Shift {
             </div>
           </div>
         </div>
-      </p-dialog>
+      </app-popup>
 
       <!-- Auto Schedule Dialog -->
-      <p-dialog
-        header="Auto Schedule"
+      <app-popup
+        title="Auto Schedule"
         [visible]="showAutoScheduleDialogFlag"
+        width="600px"
         [modal]="true"
         [closable]="true"
         [draggable]="false"
         [resizable]="false"
+        [loading]="autoScheduleLoading"
+        loadingText="Processing requests..."
+        [actions]="autoScheduleActions"
         styleClass="auto-schedule-dialog"
-        (onHide)="closeAutoScheduleDialog()">
+        (closed)="closeAutoScheduleDialog()">
 
         <div class="auto-schedule-content">
           <p>This will automatically process pending shift requests based on:</p>
@@ -188,33 +193,20 @@ interface ShiftWithRequests extends Shift {
             <li>Business rules and constraints</li>
             <li>Equal distribution preferences</li>
           </ul>
-
-          <div class="schedule-actions">
-            <p-button
-              label="Cancel"
-              severity="secondary"
-              (onClick)="closeAutoScheduleDialog()">
-            </p-button>
-            <p-button
-              label="Process Requests"
-              severity="success"
-              [loading]="autoScheduleLoading"
-              (onClick)="executeAutoScheduling()">
-            </p-button>
-          </div>
         </div>
-      </p-dialog>
+      </app-popup>
 
       <!-- All Requests Dialog -->
-      <p-dialog
-        header="All Shift Requests"
+      <app-popup
+        title="All Shift Requests"
         [visible]="showAllRequestsDialog"
+        width="1000px"
         [modal]="true"
         [closable]="true"
         [draggable]="false"
         [resizable]="false"
         styleClass="all-requests-dialog"
-        (onHide)="closeAllRequestsDialog()">
+        (closed)="closeAllRequestsDialog()">
 
         <p-table [value]="allPendingRequests" [loading]="loading" styleClass="p-datatable-sm">
           <ng-template pTemplate="header">
@@ -265,7 +257,7 @@ interface ShiftWithRequests extends Shift {
             </tr>
           </ng-template>
         </p-table>
-      </p-dialog>
+      </app-popup>
     </div>
   `,
   styleUrls: ['./shift-calendar-manager-refactored.component.scss']
@@ -282,7 +274,7 @@ export class ShiftCalendarManagerRefactoredComponent implements OnInit {
   shifts: ShiftWithRequests[] = [];
   allRequests: ShiftRequest[] = [];
   allPendingRequests: ShiftRequest[] = [];
-  employees: any[] = [];
+  employees: Employee[] = [];
 
   // Calendar properties
   calendarEvents: CalendarEvent[] = [];
@@ -317,6 +309,23 @@ export class ShiftCalendarManagerRefactoredComponent implements OnInit {
       label: 'All Requests',
       severity: 'info',
       action: 'all-requests'
+    }
+  ];
+
+  // Auto schedule actions for popup
+  autoScheduleActions: PopupAction[] = [
+    {
+      label: 'Cancel',
+      severity: 'secondary',
+      icon: 'pi pi-times',
+      action: () => this.closeAutoScheduleDialog()
+    },
+    {
+      label: 'Process Requests',
+      severity: 'success',
+      icon: 'pi pi-cog',
+      loading: false,
+      action: () => this.executeAutoScheduling()
     }
   ];
 
@@ -460,21 +469,28 @@ export class ShiftCalendarManagerRefactoredComponent implements OnInit {
   }
 
   closeShiftDialog(): void {
-    if (!this.loading) {
-      this.showShiftDialog = false;
-      this.selectedShift = null;
+    // Always allow closing the dialog, but warn if there's an ongoing operation
+    if (this.loading) {
+      console.warn('Dialog closed while loading operation is in progress');
     }
+    this.showShiftDialog = false;
+    this.selectedShift = null;
   }
 
   closeAllRequestsDialog(): void {
-    if (!this.loading) {
-      this.showAllRequestsDialog = false;
+    // Always allow closing the dialog, but warn if there's an ongoing operation
+    if (this.loading) {
+      console.warn('Dialog closed while loading operation is in progress');
     }
+    this.showAllRequestsDialog = false;
   }
 
   // Auto scheduling
   async executeAutoScheduling(): Promise<void> {
     this.autoScheduleLoading = true;
+    // Update button loading state
+    this.autoScheduleActions[1].loading = true;
+
     try {
       const currentUser = this.authService.getCurrentUser();
       if (!currentUser) {
@@ -517,6 +533,8 @@ export class ShiftCalendarManagerRefactoredComponent implements OnInit {
       });
     } finally {
       this.autoScheduleLoading = false;
+      // Reset button loading state
+      this.autoScheduleActions[1].loading = false;
       this.closeAutoScheduleDialog();
     }
   }

@@ -1,7 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FullCalendarModule } from '@fullcalendar/angular';
-import { CalendarOptions, EventClickArg, DateSelectArg } from '@fullcalendar/core';
+import { CalendarOptions, EventClickArg, DateSelectArg, EventContentArg } from '@fullcalendar/core';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -16,11 +16,20 @@ import { DatePickerModule } from 'primeng/datepicker';
 import { SelectModule } from 'primeng/select';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
-import { ApiService, Shift, ShiftRequest } from '../../../services/api.service';
+import { ApiService, RequestType, Shift, ShiftRequest } from '../../../services/api.service';
 import { AuthService } from '../../../services/auth.service';
 import { firstValueFrom } from 'rxjs';
 
 // Remove local interface since we're importing from API service
+
+// Extended props carried on FullCalendar events for this view
+interface EventExtendedProps {
+  shift: Shift;
+  assignedEmployees: Array<{ _id?: string; name?: string; code?: string } | string>;
+  pendingRequests: ShiftRequest[];
+  isUserAssigned: boolean;
+  userHasPendingRequest: boolean;
+}
 
 @Component({
   selector: 'app-shift-calendar',
@@ -195,8 +204,9 @@ import { firstValueFrom } from 'rxjs';
         [visible]="showShiftDetailsDialog"
         [style]="{ width: '600px' }"
         [draggable]="false"
-        [closable]="false"
-        [dismissableMask]="false"
+        [closable]="true"
+        [dismissableMask]="true"
+        (onHide)="closeShiftDetailsDialog()"
         >
 
         <div *ngIf="shiftDetailsData" class="space-y-4">
@@ -341,6 +351,7 @@ import { firstValueFrom } from 'rxjs';
       border-radius: 6px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       transition: all 0.2s ease;
+      position: relative;
     }
 
     :host ::ng-deep .fc-event:hover {
@@ -354,6 +365,36 @@ import { firstValueFrom } from 'rxjs';
 
     :host ::ng-deep .p-toast .p-toast-message .p-toast-message-content {
       padding: 16px;
+    }
+
+    /* Event decorations: pending badge and my-request dot */
+    :host ::ng-deep .fc-event .event-badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background-color: #f59e0b;
+      color: #ffffff;
+      border-radius: 9999px;
+      padding: 0 6px;
+      line-height: 16px;
+      height: 16px;
+      font-size: 10px;
+      font-weight: 700;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+      pointer-events: none;
+    }
+
+    :host ::ng-deep .fc-event .event-dot {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      width: 8px;
+      height: 8px;
+      border-radius: 9999px;
+      background-color: #2563eb;
+      border: 1px solid #ffffff;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.05);
+      pointer-events: none;
     }
   `]
 })
@@ -374,6 +415,7 @@ export class ShiftCalendarComponent implements OnInit {
     select: this.handleDateSelect.bind(this),
     eventClick: this.handleEventClick.bind(this),
     eventsSet: this.handleEvents.bind(this),
+    eventContent: this.renderEventContent.bind(this),
     height: 'auto'
   };
 
@@ -444,6 +486,11 @@ export class ShiftCalendarComponent implements OnInit {
   }
 
   updateCalendarEvents(): void {
+    console.log('Updating calendar events');
+    console.log('Shifts:', this.shifts.length);
+    console.log('All requests:', this.allRequests.length);
+    console.log('My requests:', this.myRequests.length);
+
     const events = this.shifts.map(shift => {
       const currentUser = this.authService.getCurrentUser();
       let className = 'fc-event-available';
@@ -457,17 +504,25 @@ export class ShiftCalendarComponent implements OnInit {
       const pendingRequests = this.getShiftRequests(shift, 'pending');
       const pendingCount = pendingRequests.length;
 
+      console.log(`Shift ${shift._id} on ${shift.date}: ${pendingCount} pending requests`, pendingRequests);
+
       // Check if current user is assigned
       const isUserAssigned = this.isUserAssignedToShift(shift, currentUser?.id || '');
 
       // Check if current user has pending request
-      const userHasPendingRequest = pendingRequests.some(req =>
-        req.employeeId === currentUser?.id
-      );
+      const userHasPendingRequest = pendingRequests.some(req => {
+        const reqEmployeeId = typeof req.employeeId === 'object' ? (req.employeeId as any)._id : req.employeeId;
+        return reqEmployeeId === currentUser?.id;
+      });
+
+      console.log(`User ${currentUser?.id} pending request for shift ${shift._id}:`, userHasPendingRequest);
 
       if (isUserAssigned) {
         className = 'fc-event-assigned';
         title = `${title} (Your Shift)`;
+      } else if (userHasPendingRequest) {
+        className = 'fc-event-requested';
+        title = `${title} (Requested - Pending Approval)`;
       } else if (assignedCount >= shift.capacity) {
         className = 'fc-event-full';
         title = `${title} (Full: ${assignedCount}/${shift.capacity})`;
@@ -533,6 +588,40 @@ export class ShiftCalendarComponent implements OnInit {
     };
   }
 
+  // Custom render to add badges/dots for requests
+  renderEventContent(arg: EventContentArg) {
+    const nodes: HTMLElement[] = [];
+    const wrapper = document.createElement('div');
+    wrapper.className = 'event-main';
+
+    const titleEl = document.createElement('div');
+    titleEl.className = 'event-title';
+    titleEl.textContent = (arg.event.title || '').split('\n')[0];
+    wrapper.appendChild(titleEl);
+
+    const ext = arg.event.extendedProps as unknown as Partial<EventExtendedProps>;
+    const pending = (ext?.pendingRequests as ShiftRequest[] | undefined) ?? [];
+    const userHasPending = !!ext?.userHasPendingRequest;
+
+    if (pending && pending.length > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'event-badge';
+      badge.title = `${pending.length} pending request${pending.length > 1 ? 's' : ''}`;
+      badge.textContent = String(pending.length);
+      wrapper.appendChild(badge);
+    }
+
+    if (userHasPending) {
+      const dot = document.createElement('span');
+      dot.className = 'event-dot';
+      dot.title = 'You requested this shift';
+      wrapper.appendChild(dot);
+    }
+
+    nodes.push(wrapper);
+    return { domNodes: nodes };
+  }
+
   handleDateSelect(selectInfo: DateSelectArg): void {
     this.selectedDate = selectInfo.start;
     this.registrationForm.patchValue({
@@ -587,7 +676,7 @@ export class ShiftCalendarComponent implements OnInit {
 
       const shiftRequest: Partial<ShiftRequest> = {
         employeeId: currentUser?.id || '',
-        type: 'pickup',
+        type: RequestType.PICKUP,
         shiftId: this.selectedShift?._id, // Include shiftId if available
         date: formData.date,
         startTime: formData.startTime,
@@ -717,12 +806,26 @@ export class ShiftCalendarComponent implements OnInit {
 
   getShiftRequests(shift: Shift, status?: string): ShiftRequest[] {
     return this.allRequests.filter(req => {
-      const matchesShift = req.shiftId === shift._id ||
-        (req.date && req.startTime && req.endTime &&
-         new Date(req.date).toDateString() === new Date(shift.date).toDateString() &&
-         req.startTime === shift.startTime && req.endTime === shift.endTime);
+      // First check for direct shiftId match
+      if (req.shiftId && req.shiftId === shift._id) {
+        return !status || req.status === status;
+      }
 
-      return matchesShift && (!status || req.status === status);
+      // For requests without shiftId, match by date and time
+      if (req.date && req.startTime && req.endTime) {
+        const requestDate = new Date(req.date);
+        const shiftDate = new Date(shift.date);
+
+        // Compare dates (ignore time part)
+        const dateMatches = requestDate.toDateString() === shiftDate.toDateString();
+        const timeMatches = req.startTime === shift.startTime && req.endTime === shift.endTime;
+
+        if (dateMatches && timeMatches) {
+          return !status || req.status === status;
+        }
+      }
+
+      return false;
     });
   }
 
