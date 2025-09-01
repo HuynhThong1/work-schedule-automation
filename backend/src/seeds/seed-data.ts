@@ -17,7 +17,11 @@ export class SeedService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    if (process.env.NODE_ENV === 'development') {
+    // Seed data in both development and production environments
+    // In production, you can control this with an environment variable
+    const shouldSeed = process.env.NODE_ENV === 'development' || process.env.ENABLE_SEED === 'true';
+
+    if (shouldSeed) {
       await this.seedData();
     }
   }

@@ -975,16 +975,20 @@ export class ShiftCalendarManagerComponent implements OnInit {
   }
 
   closeShiftDialog(): void {
-    if (!this.loading) {
-      this.showShiftDialog = false;
-      this.selectedShift = null;
+    // Always allow closing the dialog, but warn if there's an ongoing operation
+    if (this.loading) {
+      console.warn('Dialog closed while loading operation is in progress');
     }
+    this.showShiftDialog = false;
+    this.selectedShift = null;
   }
 
   closeAllRequestsDialog(): void {
-    if (!this.loading) {
-      this.showAllRequestsDialog = false;
+    // Always allow closing the dialog, but warn if there's an ongoing operation
+    if (this.loading) {
+      console.warn('Dialog closed while loading operation is in progress');
     }
+    this.showAllRequestsDialog = false;
   }
 
   showAutoScheduleDialog(): void {

@@ -141,6 +141,8 @@ export class DynamicCalendarComponent implements OnInit, OnChanges {
   }
 
   private updateCalendarEvents(): void {
+    console.log('Dynamic calendar updateCalendarEvents called with events:', this.events);
+
     if (!this.events) {
       this.calendarOptions = {
         ...this.calendarOptions,
@@ -150,6 +152,7 @@ export class DynamicCalendarComponent implements OnInit, OnChanges {
     }
 
     const formattedEvents: EventInput[] = this.events.map(event => {
+      console.log('Processing event:', event);
       let startDateTime: Date;
       let endDateTime: Date;
 
@@ -184,6 +187,8 @@ export class DynamicCalendarComponent implements OnInit, OnChanges {
         extendedProps: event.extendedProps || {}
       };
     });
+
+    console.log('Formatted events for FullCalendar:', formattedEvents);
 
     this.calendarOptions = {
       ...this.calendarOptions,

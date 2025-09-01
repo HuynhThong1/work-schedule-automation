@@ -6,6 +6,125 @@
   background: linear-gradient(135deg, #e8f5e8 0%, #b8e6b8 100%);
 }
 
+/* Calendar Event Styles */
+:host ::ng-deep {
+  /* Available shifts - green */
+  .fc-event.fc-event-available {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    border: 1px solid #047857 !important;
+    color: white !important;
+  }
+
+  /* User's assigned shifts - blue */
+  .fc-event.fc-event-assigned {
+    background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+    border: 1px solid #1d4ed8 !important;
+    color: white !important;
+  }
+
+  /* Pending requests - orange */
+  .fc-event.fc-event-pending {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    border: 1px solid #b45309 !important;
+    color: white !important;
+  }
+
+  /* Full/unavailable shifts - red */
+  .fc-event.fc-event-full {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    border: 1px solid #b91c1c !important;
+    color: white !important;
+  }
+
+  /* Shifts with rejected requests - red with striped pattern */
+  .fc-event.fc-event-rejected {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    border: 2px solid #b91c1c !important;
+    color: white !important;
+    opacity: 0.8;
+    position: relative;
+  }
+
+  .fc-event.fc-event-rejected::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(255, 255, 255, 0.2) 2px,
+      rgba(255, 255, 255, 0.2) 4px
+    );
+    pointer-events: none;
+  }
+
+  /* Direct shift requests - pending */
+  .fc-event.fc-event-request-pending {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+    border: 2px dashed #b45309 !important;
+    color: white !important;
+    opacity: 0.8;
+  }
+
+  /* Direct shift requests - approved */
+  .fc-event.fc-event-request-approved {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+    border: 2px dashed #047857 !important;
+    color: white !important;
+    opacity: 0.9;
+  }
+
+  /* Direct shift requests - rejected */
+  .fc-event.fc-event-request-rejected {
+    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    border: 2px dashed #b91c1c !important;
+    color: white !important;
+    opacity: 0.6;
+  }
+
+  /* Event title styling */
+  .fc-event-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+    line-height: 1.2;
+  }
+
+  /* Event time styling */
+  .fc-event-time {
+    font-weight: 500;
+    font-size: 0.75rem;
+  }
+
+  /* Dialog close button fixes */
+  .p-dialog .p-dialog-header .p-dialog-header-close {
+    z-index: 9999 !important;
+    position: relative !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
+
+  .p-dialog .p-dialog-header {
+    z-index: 9998 !important;
+    position: relative !important;
+  }
+
+  .p-dialog-mask {
+    z-index: 9997 !important;
+  }
+}
+
+/* No employees message */
+.no-employees {
+  color: #6b7280;
+  font-style: italic;
+  text-align: center;
+  padding: 1rem;
+}
+
 /* Legend Styles */
 .legend-container {
   padding: 1.5rem;
